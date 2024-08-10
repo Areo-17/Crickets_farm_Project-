@@ -1,0 +1,137 @@
+[2024-08-10 01:48:28,573] {taskinstance.py:896} INFO - Dependencies all met for <TaskInstance: grillos_operations.create_silver_gold 2024-08-10T00:15:00+00:00 [queued]>
+[2024-08-10 01:48:28,658] {taskinstance.py:896} INFO - Dependencies all met for <TaskInstance: grillos_operations.create_silver_gold 2024-08-10T00:15:00+00:00 [queued]>
+[2024-08-10 01:48:28,658] {taskinstance.py:1087} INFO - 
+--------------------------------------------------------------------------------
+[2024-08-10 01:48:28,658] {taskinstance.py:1088} INFO - Starting attempt 1 of 2
+[2024-08-10 01:48:28,658] {taskinstance.py:1089} INFO - 
+--------------------------------------------------------------------------------
+[2024-08-10 01:48:28,769] {taskinstance.py:1107} INFO - Executing <Task(PostgresOperator): create_silver_gold> on 2024-08-10T00:15:00+00:00
+[2024-08-10 01:48:28,820] {standard_task_runner.py:52} INFO - Started process 9891 to run task
+[2024-08-10 01:48:28,881] {standard_task_runner.py:76} INFO - Running: ['***', 'tasks', 'run', 'grillos_operations', 'create_silver_gold', '2024-08-10T00:15:00+00:00', '--job-id', '620', '--pool', 'default_pool', '--raw', '--subdir', 'DAGS_FOLDER/database_dag.py', '--cfg-path', '/tmp/tmpsgj9ce9m', '--error-file', '/tmp/tmpw5chlfag']
+[2024-08-10 01:48:28,924] {standard_task_runner.py:77} INFO - Job 620: Subtask create_silver_gold
+[2024-08-10 01:48:29,315] {logging_mixin.py:104} INFO - Running <TaskInstance: grillos_operations.create_silver_gold 2024-08-10T00:15:00+00:00 [running]> on host 27384bfff235
+[2024-08-10 01:48:29,615] {taskinstance.py:1302} INFO - Exporting the following env vars:
+AIRFLOW_CTX_DAG_OWNER=***
+AIRFLOW_CTX_DAG_ID=grillos_operations
+AIRFLOW_CTX_TASK_ID=create_silver_gold
+AIRFLOW_CTX_EXECUTION_DATE=2024-08-10T00:15:00+00:00
+AIRFLOW_CTX_DAG_RUN_ID=scheduled__2024-08-10T00:15:00+00:00
+[2024-08-10 01:48:29,625] {postgres.py:68} INFO - Executing: 
+    DROP TABLE IF EXISTS silver.aggregated_data;
+    CREATE TABLE silver.aggregated_data (
+        fecha_registro DATE,
+        fecha_nacimiento DATE,
+        tipo TEXT,
+        volumen INT,
+        fecha_reproduccion_esperada DATE,
+        fecha_sacrificio_esperada DATE
+    );
+
+    -- Ingestar datos desde farm-data hacia silver
+    INSERT INTO silver.aggregated_data
+    SELECT 
+        fecha_registro::date,
+        fecha_nacimiento::date,
+        tipo,
+        volumen,
+        CASE 
+            WHEN tipo = 'R' THEN fecha_nacimiento::date + interval '42 days'
+            WHEN tipo = 'S' THEN fecha_nacimiento::date + interval '45 days'
+        END as fecha_reproduccion_esperada,
+        CASE 
+            WHEN tipo = 'R' THEN fecha_nacimiento::date + interval '54 days'
+            WHEN tipo = 'S' THEN fecha_nacimiento::date + interval '35 days'
+        END as fecha_sacrificio_esperada
+    FROM "farm-data";
+
+    -- Crear y poblar la tabla gold
+    DROP TABLE IF EXISTS gold.monthly_production;
+    CREATE TABLE gold.monthly_production AS
+    WITH pre AS (
+        SELECT 
+            count(*) as number_of_boxes,
+            EXTRACT(MONTH FROM fecha_sacrificio_esperada) as month,
+            tipo as type
+        FROM silver.aggregated_data
+        GROUP BY 2, 3
+    ),
+    prod AS (
+        SELECT 
+            month,
+            type,
+            number_of_boxes,
+            CASE 
+                WHEN type = 'E' THEN number_of_boxes * 2.5
+                WHEN type = 'R' THEN number_of_boxes * 1.5
+            END as flour_produced_kg
+        FROM pre
+    )
+    SELECT
+        TO_CHAR(TO_DATE(month::text, 'MM'), 'Month') as mes, 
+        sum(number_of_boxes) as numero_de_cajas,
+        sum(flour_produced_kg) as total_kg_harina
+    FROM prod
+    GROUP BY 1;
+    
+[2024-08-10 01:48:29,746] {base.py:78} INFO - Using connection to: id: ***_conn. Host: db, Port: 5432, Schema: grillos, Login: ***, Password: ***, extra: {}
+[2024-08-10 01:48:29,781] {dbapi.py:204} INFO - Running statement: 
+    DROP TABLE IF EXISTS silver.aggregated_data;
+    CREATE TABLE silver.aggregated_data (
+        fecha_registro DATE,
+        fecha_nacimiento DATE,
+        tipo TEXT,
+        volumen INT,
+        fecha_reproduccion_esperada DATE,
+        fecha_sacrificio_esperada DATE
+    );
+
+    -- Ingestar datos desde farm-data hacia silver
+    INSERT INTO silver.aggregated_data
+    SELECT 
+        fecha_registro::date,
+        fecha_nacimiento::date,
+        tipo,
+        volumen,
+        CASE 
+            WHEN tipo = 'R' THEN fecha_nacimiento::date + interval '42 days'
+            WHEN tipo = 'S' THEN fecha_nacimiento::date + interval '45 days'
+        END as fecha_reproduccion_esperada,
+        CASE 
+            WHEN tipo = 'R' THEN fecha_nacimiento::date + interval '54 days'
+            WHEN tipo = 'S' THEN fecha_nacimiento::date + interval '35 days'
+        END as fecha_sacrificio_esperada
+    FROM "farm-data";
+
+    -- Crear y poblar la tabla gold
+    DROP TABLE IF EXISTS gold.monthly_production;
+    CREATE TABLE gold.monthly_production AS
+    WITH pre AS (
+        SELECT 
+            count(*) as number_of_boxes,
+            EXTRACT(MONTH FROM fecha_sacrificio_esperada) as month,
+            tipo as type
+        FROM silver.aggregated_data
+        GROUP BY 2, 3
+    ),
+    prod AS (
+        SELECT 
+            month,
+            type,
+            number_of_boxes,
+            CASE 
+                WHEN type = 'E' THEN number_of_boxes * 2.5
+                WHEN type = 'R' THEN number_of_boxes * 1.5
+            END as flour_produced_kg
+        FROM pre
+    )
+    SELECT
+        TO_CHAR(TO_DATE(month::text, 'MM'), 'Month') as mes, 
+        sum(number_of_boxes) as numero_de_cajas,
+        sum(flour_produced_kg) as total_kg_harina
+    FROM prod
+    GROUP BY 1;
+    , parameters: None
+[2024-08-10 01:48:29,821] {dbapi.py:212} INFO - Rows affected: 7
+[2024-08-10 01:48:29,922] {taskinstance.py:1211} INFO - Marking task as SUCCESS. dag_id=grillos_operations, task_id=create_silver_gold, execution_date=20240810T001500, start_date=20240810T014828, end_date=20240810T014829
+[2024-08-10 01:48:30,144] {taskinstance.py:1265} INFO - 0 downstream tasks scheduled from follow-on schedule check
+[2024-08-10 01:48:30,300] {local_task_job.py:149} INFO - Task exited with return code 0

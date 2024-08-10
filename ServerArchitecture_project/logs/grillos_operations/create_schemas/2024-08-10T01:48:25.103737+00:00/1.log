@@ -1,0 +1,42 @@
+[2024-08-10 01:48:28,600] {taskinstance.py:896} INFO - Dependencies all met for <TaskInstance: grillos_operations.create_schemas 2024-08-10T01:48:25.103737+00:00 [queued]>
+[2024-08-10 01:48:28,686] {taskinstance.py:896} INFO - Dependencies all met for <TaskInstance: grillos_operations.create_schemas 2024-08-10T01:48:25.103737+00:00 [queued]>
+[2024-08-10 01:48:28,687] {taskinstance.py:1087} INFO - 
+--------------------------------------------------------------------------------
+[2024-08-10 01:48:28,687] {taskinstance.py:1088} INFO - Starting attempt 1 of 2
+[2024-08-10 01:48:28,687] {taskinstance.py:1089} INFO - 
+--------------------------------------------------------------------------------
+[2024-08-10 01:48:28,724] {taskinstance.py:1107} INFO - Executing <Task(PostgresOperator): create_schemas> on 2024-08-10T01:48:25.103737+00:00
+[2024-08-10 01:48:28,757] {standard_task_runner.py:52} INFO - Started process 9889 to run task
+[2024-08-10 01:48:28,814] {standard_task_runner.py:76} INFO - Running: ['***', 'tasks', 'run', 'grillos_operations', 'create_schemas', '2024-08-10T01:48:25.103737+00:00', '--job-id', '619', '--pool', 'default_pool', '--raw', '--subdir', 'DAGS_FOLDER/database_dag.py', '--cfg-path', '/tmp/tmpeq2cmnkm', '--error-file', '/tmp/tmp1uw3xcss']
+[2024-08-10 01:48:28,851] {standard_task_runner.py:77} INFO - Job 619: Subtask create_schemas
+[2024-08-10 01:48:29,148] {logging_mixin.py:104} INFO - Running <TaskInstance: grillos_operations.create_schemas 2024-08-10T01:48:25.103737+00:00 [running]> on host 27384bfff235
+[2024-08-10 01:48:29,502] {taskinstance.py:1302} INFO - Exporting the following env vars:
+AIRFLOW_CTX_DAG_OWNER=***
+AIRFLOW_CTX_DAG_ID=grillos_operations
+AIRFLOW_CTX_TASK_ID=create_schemas
+AIRFLOW_CTX_EXECUTION_DATE=2024-08-10T01:48:25.103737+00:00
+AIRFLOW_CTX_DAG_RUN_ID=manual__2024-08-10T01:48:25.103737+00:00
+[2024-08-10 01:48:29,502] {postgres.py:68} INFO - Executing: 
+    BEGIN;
+    CREATE SCHEMA IF NOT EXISTS silver;
+    CREATE SCHEMA IF NOT EXISTS gold;
+    COMMIT;
+    
+[2024-08-10 01:48:29,587] {base.py:78} INFO - Using connection to: id: ***_conn. Host: db, Port: 5432, Schema: grillos, Login: ***, Password: ***, extra: {}
+[2024-08-10 01:48:29,627] {dbapi.py:204} INFO - Running statement: 
+    BEGIN;
+    CREATE SCHEMA IF NOT EXISTS silver;
+    CREATE SCHEMA IF NOT EXISTS gold;
+    COMMIT;
+    , parameters: None
+[2024-08-10 01:48:29,649] {postgres.py:72} INFO - WARNING:  there is already a transaction in progress
+
+[2024-08-10 01:48:29,650] {postgres.py:72} INFO - NOTICE:  schema "silver" already exists, skipping
+
+[2024-08-10 01:48:29,650] {postgres.py:72} INFO - NOTICE:  schema "gold" already exists, skipping
+
+[2024-08-10 01:48:29,650] {postgres.py:72} INFO - WARNING:  there is no transaction in progress
+
+[2024-08-10 01:48:29,777] {taskinstance.py:1211} INFO - Marking task as SUCCESS. dag_id=grillos_operations, task_id=create_schemas, execution_date=20240810T014825, start_date=20240810T014828, end_date=20240810T014829
+[2024-08-10 01:48:30,043] {taskinstance.py:1265} INFO - 1 downstream tasks scheduled from follow-on schedule check
+[2024-08-10 01:48:30,118] {local_task_job.py:149} INFO - Task exited with return code 0

@@ -1,0 +1,151 @@
+[2024-08-09 19:04:45,962] {taskinstance.py:896} INFO - Dependencies all met for <TaskInstance: grillos_operations.create_silver_gold 2024-08-09T19:04:43.804437+00:00 [queued]>
+[2024-08-09 19:04:45,981] {taskinstance.py:896} INFO - Dependencies all met for <TaskInstance: grillos_operations.create_silver_gold 2024-08-09T19:04:43.804437+00:00 [queued]>
+[2024-08-09 19:04:45,981] {taskinstance.py:1087} INFO - 
+--------------------------------------------------------------------------------
+[2024-08-09 19:04:45,982] {taskinstance.py:1088} INFO - Starting attempt 1 of 2
+[2024-08-09 19:04:45,982] {taskinstance.py:1089} INFO - 
+--------------------------------------------------------------------------------
+[2024-08-09 19:04:45,991] {taskinstance.py:1107} INFO - Executing <Task(PostgresOperator): create_silver_gold> on 2024-08-09T19:04:43.804437+00:00
+[2024-08-09 19:04:45,997] {standard_task_runner.py:52} INFO - Started process 3088 to run task
+[2024-08-09 19:04:46,001] {standard_task_runner.py:76} INFO - Running: ['***', 'tasks', 'run', 'grillos_operations', 'create_silver_gold', '2024-08-09T19:04:43.804437+00:00', '--job-id', '482', '--pool', 'default_pool', '--raw', '--subdir', 'DAGS_FOLDER/database_dag.py', '--cfg-path', '/tmp/tmp11t0u_nz', '--error-file', '/tmp/tmpo6ier5zv']
+[2024-08-09 19:04:46,004] {standard_task_runner.py:77} INFO - Job 482: Subtask create_silver_gold
+[2024-08-09 19:04:46,051] {logging_mixin.py:104} INFO - Running <TaskInstance: grillos_operations.create_silver_gold 2024-08-09T19:04:43.804437+00:00 [running]> on host abbdc0287e1f
+[2024-08-09 19:04:46,115] {taskinstance.py:1302} INFO - Exporting the following env vars:
+AIRFLOW_CTX_DAG_OWNER=***
+AIRFLOW_CTX_DAG_ID=grillos_operations
+AIRFLOW_CTX_TASK_ID=create_silver_gold
+AIRFLOW_CTX_EXECUTION_DATE=2024-08-09T19:04:43.804437+00:00
+AIRFLOW_CTX_DAG_RUN_ID=manual__2024-08-09T19:04:43.804437+00:00
+[2024-08-09 19:04:46,116] {postgres.py:68} INFO - Executing: 
+    CREATE TABLE IF NOT EXISTS silver.aggregated_data (
+        fecha_registro DATE,
+        fecha_nacimiento DATE,
+        tipo TEXT,
+        volumen INT,
+        fecha_reproduccion_esperada DATE,
+        fecha_sacrificio_esperada DATE
+    );
+
+    -- Ingestar datos desde farm-data hacia silver
+    INSERT INTO silver.aggregated_data
+    SELECT 
+        fecha_registro::date,
+        fecha_nacimiento::date,
+        tipo,
+        volumen,
+        CASE 
+            WHEN tipo = 'R' THEN fecha_nacimiento::date + interval '42 days'
+            WHEN tipo = 'S' THEN fecha_nacimiento::date + interval '45 days'
+        END as fecha_reproduccion_esperada,
+        CASE 
+            WHEN tipo = 'R' THEN fecha_nacimiento::date + interval '54 days'
+            WHEN tipo = 'S' THEN fecha_nacimiento::date + interval '35 days'
+        END as fecha_sacrificio_esperada
+    FROM "farm-data";
+
+    -- Crear y poblar la tabla gold
+    DROP TABLE IF EXISTS gold.monthly_production;
+    CREATE TABLE gold.monthly_production AS
+    WITH pre AS (
+        SELECT 
+            count(*) as number_of_boxes,
+            EXTRACT(MONTH FROM fecha_sacrificio_esperada) as month,
+            tipo as type
+        FROM silver.aggregated_data
+        GROUP BY 2, 3
+    ),
+    prod AS (
+        SELECT 
+            month,
+            type,
+            number_of_boxes,
+            CASE 
+                WHEN type = 'E' THEN number_of_boxes * 2.5
+                WHEN type = 'R' THEN number_of_boxes * 1.5
+            END as flour_produced_kg
+        FROM pre
+    )
+    SELECT
+        TO_CHAR(TO_DATE(month::text, 'MM'), 'Month') as mes, 
+        sum(number_of_boxes) as numero_de_cajas,
+        sum(flour_produced_kg) as total_kg_harina
+    FROM prod
+    GROUP BY 1;
+    
+[2024-08-09 19:04:46,128] {base.py:78} INFO - Using connection to: id: ***_conn. Host: db, Port: 5432, Schema: grillos, Login: ***, Password: ***, extra: {}
+[2024-08-09 19:04:46,133] {dbapi.py:204} INFO - Running statement: 
+    CREATE TABLE IF NOT EXISTS silver.aggregated_data (
+        fecha_registro DATE,
+        fecha_nacimiento DATE,
+        tipo TEXT,
+        volumen INT,
+        fecha_reproduccion_esperada DATE,
+        fecha_sacrificio_esperada DATE
+    );
+
+    -- Ingestar datos desde farm-data hacia silver
+    INSERT INTO silver.aggregated_data
+    SELECT 
+        fecha_registro::date,
+        fecha_nacimiento::date,
+        tipo,
+        volumen,
+        CASE 
+            WHEN tipo = 'R' THEN fecha_nacimiento::date + interval '42 days'
+            WHEN tipo = 'S' THEN fecha_nacimiento::date + interval '45 days'
+        END as fecha_reproduccion_esperada,
+        CASE 
+            WHEN tipo = 'R' THEN fecha_nacimiento::date + interval '54 days'
+            WHEN tipo = 'S' THEN fecha_nacimiento::date + interval '35 days'
+        END as fecha_sacrificio_esperada
+    FROM "farm-data";
+
+    -- Crear y poblar la tabla gold
+    DROP TABLE IF EXISTS gold.monthly_production;
+    CREATE TABLE gold.monthly_production AS
+    WITH pre AS (
+        SELECT 
+            count(*) as number_of_boxes,
+            EXTRACT(MONTH FROM fecha_sacrificio_esperada) as month,
+            tipo as type
+        FROM silver.aggregated_data
+        GROUP BY 2, 3
+    ),
+    prod AS (
+        SELECT 
+            month,
+            type,
+            number_of_boxes,
+            CASE 
+                WHEN type = 'E' THEN number_of_boxes * 2.5
+                WHEN type = 'R' THEN number_of_boxes * 1.5
+            END as flour_produced_kg
+        FROM pre
+    )
+    SELECT
+        TO_CHAR(TO_DATE(month::text, 'MM'), 'Month') as mes, 
+        sum(number_of_boxes) as numero_de_cajas,
+        sum(flour_produced_kg) as total_kg_harina
+    FROM prod
+    GROUP BY 1;
+    , parameters: None
+[2024-08-09 19:04:46,139] {taskinstance.py:1501} ERROR - Task failed with exception
+Traceback (most recent call last):
+  File "/home/airflow/.local/lib/python3.6/site-packages/airflow/models/taskinstance.py", line 1157, in _run_raw_task
+    self._prepare_and_execute_task_with_callbacks(context, task)
+  File "/home/airflow/.local/lib/python3.6/site-packages/airflow/models/taskinstance.py", line 1331, in _prepare_and_execute_task_with_callbacks
+    result = self._execute_task(context, task_copy)
+  File "/home/airflow/.local/lib/python3.6/site-packages/airflow/models/taskinstance.py", line 1361, in _execute_task
+    result = task_copy.execute(context=context)
+  File "/home/airflow/.local/lib/python3.6/site-packages/airflow/providers/postgres/operators/postgres.py", line 70, in execute
+    self.hook.run(self.sql, self.autocommit, parameters=self.parameters)
+  File "/home/airflow/.local/lib/python3.6/site-packages/airflow/hooks/dbapi.py", line 184, in run
+    self._run_command(cur, sql_statement, parameters)
+  File "/home/airflow/.local/lib/python3.6/site-packages/airflow/hooks/dbapi.py", line 208, in _run_command
+    cur.execute(sql_statement)
+psycopg2.errors.UndefinedTable: relation "farm-data" does not exist
+LINE 26:     FROM "farm-data";
+                  ^
+
+[2024-08-09 19:04:46,141] {taskinstance.py:1551} INFO - Marking task as UP_FOR_RETRY. dag_id=grillos_operations, task_id=create_silver_gold, execution_date=20240809T190443, start_date=20240809T190445, end_date=20240809T190446
+[2024-08-09 19:04:46,172] {local_task_job.py:149} INFO - Task exited with return code 1
